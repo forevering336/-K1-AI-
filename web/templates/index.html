@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>工业焊接缺陷检测 · 监控仪表盘</title>
+<!-- 纯离线：无任何 CDN / 外链，断网也能正常显示 -->
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Microsoft YaHei", "Segoe UI", system-ui, sans-serif;
+         background: #0e1116; color: #e6e6e6; padding: 16px; }
+  h1 { font-size: 20px; display: flex; align-items: center; gap: 10px; }
+  .badge { font-size: 12px; padding: 2px 10px; border-radius: 12px;
+           background: #1f6f43; color: #fff; }
+  .topbar { display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 16px; flex-wrap: wrap; gap: 8px; }
+  .grid { display: grid; grid-template-columns: 220px repeat(5, 1fr);
+          gap: 12px; margin-bottom: 16px; }
+  .card { background: #171b22; border: 1px solid #232a34; border-radius: 12px;
+          padding: 16px; }
+  .status-card { grid-row: span 1; display: flex; flex-direction: column;
+                 align-items: center; justify-content: center; }
+  .status-big { font-size: 52px; font-weight: 800; letter-spacing: 2px; }
+  .ok { color: #2ec76b; } .ng { color: #ff4d4f; }
+  .metric .label { font-size: 13px; color: #8b95a3; }
+  .metric .value { font-size: 30px; font-weight: 700; margin-top: 6px; }
+  .tabs { display: flex; gap: 8px; margin: 8px 0 14px; }
+  .tab { padding: 8px 16px; background: #171b22; border: 1px solid #232a34;
+         border-radius: 8px; cursor: pointer; font-size: 14px; }
+  .tab.active { background: #2b3442; border-color: #3b82f6; }
+  .panel { display: none; } .panel.active { display: block; }
+  .row { display: grid; grid-template-columns: 1.4fr 1fr; gap: 12px; }
+  @media (max-width: 900px){ .grid{grid-template-columns:1fr 1fr;} .row{grid-template-columns:1fr;} }
+  img.feed { width: 100%; border-radius: 10px; background: #000; display:block; }
+  .alerts li { list-style: none; padding: 8px 10px; border-bottom: 1px solid #232a34;
+               display: flex; justify-content: space-between; font-size: 14px; }
+  .alerts .cls { color: #ffb454; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { padding: 8px 10px; border-bottom: 1px solid #232a34; text-align: left; }
+  th { color: #8b95a3; font-weight: 600; }
+  .filters { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  input, button, select { background:#0e1116; color:#e6e6e6; border:1px solid #232a34;
+          border-radius:6px; padding:6px 10px; font-size:13px; }
+  button { cursor: pointer; } button:hover { border-color:#3b82f6; }
+  .thumbs { display: grid; grid-template-columns: repeat(auto-fill,minmax(150px,1fr));
+            gap: 10px; }
+  .thumbs img { width: 100%; border-radius: 8px; cursor: pointer; border:1px solid #232a34; }
+  .pager { display:flex; gap:8px; align-items:center; margin-top:10px; }
+  #lightbox { position: fixed; inset: 0; background: rgba(0,0,0,.85); display:none;
+              align-items:center; justify-content:center; z-index:99; }
+  #lightbox img { max-width: 92%; max-height: 92%; border-radius: 8px; }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <h1>🔧 工业焊接缺陷检测 · 监控仪表盘 <span class="badge" id="run-badge">● 运行中</span></h1>
+    <div style="font-size:13px;color:#8b95a3">运行时长 <span id="uptime">-</span></div>
+  </div>
+
+  <div class="grid">
+    <div class="card status-card">
+      <div class="status-big ok" id="status">OK</div>
+      <div id="status-sub" style="color:#8b95a3;margin-top:6px">正常</div>
+    </div>
+    <div class="card metric"><div class="label">⚡ 实时 FPS</div><div class="value" id="fps">-</div></div>
+    <div class="card metric"><div class="label">📦 已检测</div><div class="value" id="total">-</div></div>
+    <div class="card metric"><div class="label">❌ 缺陷数</div><div class="value" id="defect">-</div></div>
+    <div class="card metric"><div class="label">✅ 合格率</div><div class="value" id="rate">-</div></div>
+    <div class="card metric"><div class="label">🔍 异常分(未知缺陷)</div><div class="value" id="anomaly">-</div></div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="live">实时监控</div>
+    <div class="tab" data-tab="history">📋 历史记录</div>
+    <div class="tab" data-tab="shots">📸 缺陷截图</div>
+  </div>
+
+  <!-- 实时监控 -->
+  <div class="panel active" id="panel-live">
+    <div class="row">
+      <div class="card">
+        <div style="margin-bottom:8px;color:#8b95a3">实时画面（带检测框）</div>
+        {% if enable_video %}
+          <img class="feed" src="/video_feed" alt="实时画面">
+        {% else %}
+          <div style="color:#8b95a3;padding:40px;text-align:center">
+            未启用视频流（用 <code>--web-video</code> 开启）
+          </div>
+        {% endif %}
+      </div>
+      <div class="card">
+        <div style="margin-bottom:8px;color:#8b95a3">📊 最近告警</div>
+        <ul class="alerts" id="alerts"><li>暂无</li></ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 历史记录 -->
+  <div class="panel" id="panel-history">
+    <div class="card">
+      <div class="filters">
+        <input type="text" id="f-date" placeholder="日期 如 2026-07-01">
+        <input type="text" id="f-class" placeholder="类别 如 Crack/裂纹">
+        <button onclick="loadHistory(1)">查询</button>
+        <button onclick="document.getElementById('f-date').value='';document.getElementById('f-class').value='';loadHistory(1)">重置</button>
+      </div>
+      <table>
+        <thead><tr><th>时间</th><th>类别</th><th>置信度</th><th>位置(bbox)</th></tr></thead>
+        <tbody id="hist-body"><tr><td colspan="4">加载中…</td></tr></tbody>
+      </table>
+      <div class="pager">
+        <button onclick="loadHistory(histPage-1)">上一页</button>
+        <span id="pageinfo">-</span>
+        <button onclick="loadHistory(histPage+1)">下一页</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 缺陷截图 -->
+  <div class="panel" id="panel-shots">
+    <div class="card">
+      <div style="margin-bottom:10px;color:#8b95a3">NG 缺陷截图（点击放大）</div>
+      <div class="thumbs" id="thumbs">加载中…</div>
+    </div>
+  </div>
+
+  <div id="lightbox" onclick="this.style.display='none'"><img id="lb-img" src=""></div>
+
+<script>
+const CN = {Crack:"裂纹", Porosity:"气孔", Spatters:"飞溅", "Welding line":"焊缝"};
+
+// ---- 标签页切换 ----
+document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
+  document.querySelectorAll(".tab").forEach(x => x.classList.remove("active"));
+  document.querySelectorAll(".panel").forEach(x => x.classList.remove("active"));
+  t.classList.add("active");
+  const name = t.dataset.tab;
+  document.getElementById("panel-" + name).classList.add("active");
+  if (name === "history") loadHistory(1);
+  if (name === "shots") loadShots();
+});
+
+// ---- 每秒轮询实时统计 ----
+async function poll() {
+  try {
+    const r = await fetch("/api/stats"); const d = await r.json();
+    const isNG = d.status === "NG";
+    const st = document.getElementById("status");
+    st.textContent = d.status;
+    st.className = "status-big " + (isNG ? "ng" : "ok");
+    document.getElementById("status-sub").textContent = isNG ? "检测到缺陷" : "正常";
+    document.getElementById("fps").textContent = d.fps;
+    document.getElementById("total").textContent = d.total;
+    document.getElementById("defect").textContent = d.defect;
+    document.getElementById("rate").textContent = d.pass_rate + "%";
+    const an = document.getElementById("anomaly");
+    if (!d.anomaly_on) { an.textContent = "未启用"; an.style.color = "#5b6472"; }
+    else {
+      an.textContent = d.anomaly_score + " / " + d.anomaly_thresh;
+      an.style.color = (d.anomaly_score > d.anomaly_thresh) ? "#ff4d4f" : "#2ec76b";
+    }
+    document.getElementById("uptime").textContent = d.uptime;
+    const ul = document.getElementById("alerts");
+    if (d.alerts && d.alerts.length) {
+      ul.innerHTML = d.alerts.map(a =>
+        `<li><span><span class="cls">${a.class_cn||a.class_en||a.class||""}</span>
+         ${a.conf!=null?(" "+(a.conf*100).toFixed(0)+"%"):""}</span>
+         <span style="color:#8b95a3">${a.time||""}</span></li>`).join("");
+    } else { ul.innerHTML = "<li>暂无</li>"; }
+    document.getElementById("run-badge").textContent = "● 运行中";
+  } catch (e) {
+    document.getElementById("run-badge").textContent = "● 连接断开";
+  }
+}
+setInterval(poll, 1000); poll();
+
+// ---- 历史记录 ----
+let histPage = 1;
+async function loadHistory(page) {
+  if (page < 1) return;
+  const date = document.getElementById("f-date").value.trim();
+  const cls = document.getElementById("f-class").value.trim();
+  const q = new URLSearchParams({page, limit:50});
+  if (date) q.set("date", date); if (cls) q.set("class", cls);
+  const r = await fetch("/api/history?" + q); const d = await r.json();
+  histPage = d.page || 1;
+  const body = document.getElementById("hist-body");
+  if (!d.rows || !d.rows.length) { body.innerHTML = "<tr><td colspan='4'>无记录</td></tr>"; }
+  else {
+    body.innerHTML = d.rows.map(x =>
+      `<tr><td>${x.time}</td><td>${(CN[x.class]||x.class)} <span style="color:#5b6472">${x.class}</span></td>
+       <td>${x.confidence}</td><td style="color:#8b95a3">${x.bbox||""}</td></tr>`).join("");
+  }
+  document.getElementById("pageinfo").textContent =
+    `第 ${d.page||1}/${d.pages||1} 页 · 共 ${d.total||0} 条`;
+}
+
+// ---- 缺陷截图 ----
+async function loadShots() {
+  const r = await fetch("/api/images"); const files = await r.json();
+  const box = document.getElementById("thumbs");
+  if (!files.length) { box.textContent = "暂无截图"; return; }
+  box.innerHTML = files.map(f =>
+    `<img src="/api/image/${encodeURIComponent(f)}" title="${f}"
+      onclick="document.getElementById('lb-img').src=this.src;document.getElementById('lightbox').style.display='flex';">`
+  ).join("");
+}
+</script>
+</body>
+</html>

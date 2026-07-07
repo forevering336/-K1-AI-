@@ -1,0 +1,40 @@
+{
+  "model_parameters": {
+    "onnx_model": "E:\\\\weld\\\\best_award_fp32.onnx",
+    "working_dir": "E:\\\\weld\\\\quant_award\\\\out"
+  },
+  "quantization_parameters": {
+    "custom_setting": [
+      {
+        "input_names": [
+          "/model.15/cv2/act/Mul_output_0",
+          "/model.18/cv2/act/Mul_output_0",
+          "/model.21/cv2/act/Mul_output_0"
+        ],
+        "output_names": [
+          "output0"
+        ],
+        "precision_level": 3
+      }
+    ]
+  },
+  "calibration_parameters": {
+    "calibration_device": "cpu",
+    "input_parameters": [
+      {
+        "mean_value": [
+          0,
+          0,
+          0
+        ],
+        "std_value": [
+          255,
+          255,
+          255
+        ],
+        "color_format": "rgb",
+        "data_list_path": "D:\\\\quant\\\\calib_list.txt"
+      }
+    ]
+  }
+}

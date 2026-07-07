@@ -1,0 +1,17 @@
+Ultralytics validation summary
+
+Model: models/best_award_fp32.onnx
+Data: data_weld_local.yaml
+Split: valid
+Image size: 640
+Images: 800
+Instances: 14155 after duplicate-label filtering
+
+All classes:
+Precision: 0.8575436056380576
+Recall: 0.8003471038820604
+mAP@0.5: 0.8606689643745904
+mAP@0.5:0.95: 0.6238691702150779
+
+Report usage:
+Use this as the main validation-set ONNX metric for project documentation.

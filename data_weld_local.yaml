@@ -1,0 +1,6 @@
+﻿path: .
+train: train/images
+val: valid/images
+test: test/images
+nc: 4
+names: ['Crack', 'Porosity', 'Spatters', 'Welding line']

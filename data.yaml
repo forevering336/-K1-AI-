@@ -1,0 +1,27 @@
+# YOLOv8 训练数据配置
+# 数据集: 焊接缺陷检测 (Crack / Porosity / Spatters / Welding line)
+# 来源: Roboflow Universe (CC BY 4.0 License)
+# URL: https://universe.roboflow.com/trial-z2qzo/weld-ddeij-fkpig
+
+path: .
+train: train/images
+val: valid/images
+test: test/images
+
+# 类别数
+nc: 4
+
+# 类别名称
+names:
+  0: Crack
+  1: Porosity
+  2: Spatters
+  3: Welding line
+
+# Roboflow 元数据
+roboflow:
+  workspace: trial-z2qzo
+  project: weld-ddeij-fkpig
+  version: 1
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/trial-z2qzo/weld-ddeij-fkpig/dataset/1
