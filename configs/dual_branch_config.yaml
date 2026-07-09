@@ -1,0 +1,34 @@
+fusion:
+  logic: OR
+model:
+  patchcore:
+    anomaly_threshold: 1.1435105323791503
+    input_size:
+    - 256
+    - 256
+    memory_bank_path: models/memory_bank2.npy
+    metadata_path: ""
+    onnx_path: models/backbone3.onnx
+    selected_fpr: 0.05
+    top_k_for_score: 5
+  yolo:
+    class_names:
+    - Crack
+    - Porosity
+    - Spatters
+    - Welding line
+    conf_threshold: 0.5
+    defect_classes:
+    - 0
+    - 1
+    - 2
+    input_size:
+    - 640
+    - 640
+    iou_threshold: 0.45
+    onnx_path: models/best_award_int8.onnx
+runtime:
+  anomaly_skip_frames: 4
+  enable_heatmap_overlay: true
+  enable_timing_log: false
+  plc_pin: 0
